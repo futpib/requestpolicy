@@ -1,5 +1,7 @@
 <!ENTITY rp.menu.revokeTemporaryPermissions "Revoke all temporary permissions">
 <!ENTITY rp.menu.blockedDestinations "Blocked destinations">
+<!ENTITY rp.menu.blockedUrls "Blocked URLs: ">
+<!ENTITY rp.menu.allowedUrls "Allowed URLs: ">
 <!ENTITY rp.menu.allowedDestinations "Allowed destinations">
 <!ENTITY rp.menu.mixedDestinations "Mixed destinations">
 <!ENTITY rp.menu.otherOrigins "Other origins">

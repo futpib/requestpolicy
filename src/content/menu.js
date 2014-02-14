@@ -51,6 +51,7 @@ requestpolicy.menu = {
   _allowedDestinationsList : null,
   _removeRulesList : null,
   _addRulesList : null,
+  _affectedUrlsInfo: null,
 
   _isCurrentlySelectedDestBlocked : null,
   _isCurrentlySelectedDestAllowed : null,
@@ -77,6 +78,47 @@ requestpolicy.menu = {
             .getElementById("rp-allowed-destinations-list");
       this._addRulesList = document.getElementById("rp-rules-add");
       this._removeRulesList = document.getElementById("rp-rules-remove");
+
+      this._affectedUrlsInfo = {
+        'blocked' : {
+          'container' : document.getElementById("rp-blocked-urls"),
+          'filters' : {
+            'nothing' : document.getElementById("rp-blocked-urls-title"),
+            'all' : document.getElementById("rp-blocked-urls-all"),
+            'img' : document.getElementById("rp-blocked-urls-img"),
+            'css' : document.getElementById("rp-blocked-urls-css"),
+            'js'  : document.getElementById("rp-blocked-urls-js"),
+          },
+          'filterFormatStr' : {
+            'nothing' : null, // handled separately
+            'all' : 'displayAllAffectedURLs',
+            'img' : 'displayAffectedImageURLs',
+            'css' : 'displayAffectedStyleURLs',
+            'js'  : 'displayAffectedJavaScriptURLs',
+          },
+          'activeFilter' : 'nothing',
+          'list' : document.getElementById("rp-blocked-urls-list"),
+        },
+        'allowed' : {
+          'container' : document.getElementById("rp-allowed-urls"),
+          'filters' : {
+            'nothing' : document.getElementById("rp-allowed-urls-title"),
+            'all' : document.getElementById("rp-allowed-urls-all"),
+            'img' : document.getElementById("rp-allowed-urls-img"),
+            'css' : document.getElementById("rp-allowed-urls-css"),
+            'js'  : document.getElementById("rp-allowed-urls-js"),
+          },
+          'filterFormatStr' : {
+            'nothing' : null,
+            'all' : 'displayAllAffectedURLs',
+            'img' : 'displayAffectedImageURLs',
+            'css' : 'displayAffectedStyleURLs',
+            'js'  : 'displayAffectedJavaScriptURLs',
+          },
+          'activeFilter' : 'nothing',
+          'list' : document.getElementById("rp-allowed-urls-list"),
+        },
+      };
 
       var conflictCount = this._rpService.getConflictingExtensions().length;
       var hideConflictInfo = (conflictCount == 0);
@@ -171,6 +213,8 @@ requestpolicy.menu = {
     this._removeChildren(this._allowedDestinationsList);
     this._removeChildren(this._removeRulesList);
     this._removeChildren(this._addRulesList);
+    this._affectedUrlsInfo.allowed.container.hidden = true;
+    this._affectedUrlsInfo.blocked.container.hidden = true;
     document.getElementById('rp-other-origins').hidden = true;
     document.getElementById('rp-blocked-destinations').hidden = true;
     document.getElementById('rp-mixed-destinations').hidden = true;
@@ -330,8 +374,45 @@ requestpolicy.menu = {
       }
     }
 
+    this._populateAffectedUrlsInfo();
+
     this._populateDetailsRemoveAllowRules(this._removeRulesList);
     this._populateDetailsRemoveDenyRules(this._removeRulesList);
+  },
+
+  _categorizeReqSetDestUrls : function(reqSet) {
+    var info = {
+        all: [],
+        css: [],
+        img: [],
+        js: []
+    };
+
+    var origins = reqSet.getAll();
+    for (var oUri in origins) {
+      for (var dBase in origins[oUri]) {
+        var dests = origins[oUri];
+        if(this._currentlySelectedDest && dBase.indexOf(this._currentlySelectedDest) == -1)
+            continue;
+        for (var dIdent in dests[dBase]) {
+          for (var dUri in dests[dBase][dIdent]) {
+            info.all.push(dUri);
+            var rstr = dUri;
+            var endPos = dUri.indexOf("?");
+            if(endPos > -1)
+                rstr = rstr.substr(0, endPos);
+            if(rstr.toLowerCase().match(/\.css$/))
+                info.css.push(dUri);
+            if(rstr.toLowerCase().match(/(\.png|\.jpg|\.gif|\.jpeg)$/))
+                info.img.push(dUri);
+            if(rstr.toLowerCase().match(/\.js$/))
+                info.js.push(dUri);
+          }
+        }
+      }
+    }
+
+    return info;
   },
 
   _removeChildren : function(el) {
@@ -411,6 +492,27 @@ requestpolicy.menu = {
     this._resetSelectedDest();
     item.setAttribute('selected-dest', 'true');
     this._populateDetails();
+  },
+
+  affectedUrlsFilterSelected : function(event) {
+    var item = event.target;
+    var blockedAllowed;
+
+    if (item.parentNode.id == "rp-blocked-urls-header") {
+      blockedAllowed = 'blocked';;
+    } else if (item.parentNode.id == "rp-allowed-urls-header") {
+      blockedAllowed = 'allowed';
+    }
+
+    let (f = this._affectedUrlsInfo[blockedAllowed].activeFilter) {
+      this._affectedUrlsInfo[blockedAllowed].filters[f]
+            .setAttribute('selected-info', 'false');
+    }
+    item.setAttribute('selected-info', 'true');
+
+    this._affectedUrlsInfo[blockedAllowed].activeFilter = item.getAttribute('filter-name');
+
+    this._populateAffectedUrlsInfo();
   },
 
 
@@ -1066,6 +1168,71 @@ requestpolicy.menu = {
       }
     }
 
+  },
+
+  _populateAffectedUrlsInfo : function() {
+    var uri = null;
+    if (this._currentBaseDomain == this._currentlySelectedOrigin) {
+      uri = this._currentUri;
+    }
+    var ident = 'http://' + this._currentlySelectedOrigin;
+
+    for (var blockedAllowed in this._affectedUrlsInfo /*['blocked', 'allowed']*/) {
+      var reqSet = null;
+
+      if (blockedAllowed == 'blocked') {
+        if (!this._currentlySelectedDest || this._isCurrentlySelectedDestBlocked) {
+          reqSet = requestpolicy.mod.RequestUtil.getDeniedRequests(
+              uri, ident, this._otherOrigins);
+
+          this._affectedUrlsInfo.blocked.container.hidden = false;
+        } else {
+          this._affectedUrlsInfo.blocked.container.hidden = true;
+          continue;
+        }
+      } else {
+        if (!this._currentlySelectedDest || this._isCurrentlySelectedDestAllowed) {
+          reqSet = requestpolicy.mod.RequestUtil.getAllowedRequests(
+              uri, ident, this._otherOrigins);
+
+          this._affectedUrlsInfo.allowed.container.hidden = false;
+        } else {
+          this._affectedUrlsInfo.allowed.container.hidden = true;
+          continue;
+        }
+      }
+
+      var info = this._categorizeReqSetDestUrls(reqSet),
+          urls = [];
+      this._removeChildren(this._affectedUrlsInfo[blockedAllowed].list);
+
+      for (var f in this._affectedUrlsInfo[blockedAllowed].filters) {
+        if (f == 'nothing') {
+          continue;
+        }
+        this._affectedUrlsInfo[blockedAllowed].filters[f].setAttribute("value",
+            this._strbundle.getFormattedString(
+                this._affectedUrlsInfo[blockedAllowed].filterFormatStr[f],
+                [info[f].length.toString()]
+            )
+        );
+      }
+
+      if (this._affectedUrlsInfo[blockedAllowed].activeFilter == 'nothing') {
+        continue;
+      }
+
+      urls = info[this._affectedUrlsInfo[blockedAllowed].activeFilter];
+
+      for(var i=0; i<urls.length; i++) {
+        var label = document.createElement("label");
+
+        label.setAttribute("href", urls[i]);
+        label.setAttribute("class", "text-link");
+        label.setAttribute("value", urls[i]);
+        this._affectedUrlsInfo[blockedAllowed].list.insertBefore(label, null);
+      }
+    }
   },
 
 }

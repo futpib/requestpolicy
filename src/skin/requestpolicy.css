@@ -236,6 +236,41 @@ toolbar[iconsize="small"][requestpolicyPermissive="true"] #requestpolicyToolbarB
   margin-bottom: 14px;
 }
 
+#rp-rules-add label:last-child {
+  margin-bottom: 14px;
+}
+
+.rp-affected-urls-list {
+  overflow: auto;
+  padding-bottom: 15px;
+}
+
+.rp-blocked-filter-button, .rp-allowed-filter-button {
+  margin-right: 10px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.rp-blocked-filter-button {
+  color: #844;
+}
+.rp-blocked-filter-button:hover {
+  background-color: #fff1f1;
+}
+.rp-blocked-filter-button[selected-info="true"] {
+  background-color: #ffe1e1 !important;
+}
+
+.rp-allowed-filter-button {
+  color: #484;
+}
+.rp-allowed-filter-button:hover {
+  background-color: #f1fff1;
+}
+.rp-allowed-filter-button[selected-info="true"] {
+  background-color: #e1ffe1 !important;
+}
+
 #rp-origin {
   font-size: 1.2em;
   color : #555;

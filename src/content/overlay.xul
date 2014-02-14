@@ -96,6 +96,50 @@
             <vbox id="rp-rules-remove" />
             <vbox id="rp-rules-add" />
             <vbox id="rp-request-info" />
+            <vbox id="rp-affected-urls">
+              <vbox id="rp-blocked-urls">
+                <hbox id="rp-blocked-urls-header">
+                  <label id="rp-blocked-urls-title" filter-name="nothing"
+                    class="rp-blocked-filter-button" value="&rp.menu.blockedUrls;"
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);"
+                    selected-info="true"/>
+                  <label id="rp-blocked-urls-all" filter-name="all"
+                    class="rp-blocked-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                  <label id="rp-blocked-urls-img" filter-name="img"
+                    class="rp-blocked-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                  <label id="rp-blocked-urls-css" filter-name="css"
+                    class="rp-blocked-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                  <label id="rp-blocked-urls-js" filter-name="js"
+                    class="rp-blocked-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                </hbox>
+                <vbox id="rp-blocked-urls-list" class="rp-affected-urls-list" />
+              </vbox>
+              <vbox id="rp-allowed-urls">
+                <hbox id="rp-allowed-urls-header">
+                  <label id="rp-allowed-urls-title" filter-name="nothing"
+                    class="rp-allowed-filter-button" value="&rp.menu.allowedUrls;"
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);"
+                    selected-info="true"/>
+                  <label id="rp-allowed-urls-all" filter-name="all"
+                    class="rp-allowed-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                  <label id="rp-allowed-urls-img" filter-name="img"
+                    class="rp-allowed-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                  <label id="rp-allowed-urls-css" filter-name="css"
+                    class="rp-allowed-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                  <label id="rp-allowed-urls-js" filter-name="js"
+                    class="rp-allowed-filter-button" value=""
+                    onclick="requestpolicy.menu.affectedUrlsFilterSelected(event);" />
+                </hbox>
+                <vbox id="rp-allowed-urls-list" class="rp-affected-urls-list" />
+              </vbox>
+            </vbox>
           </vbox>
         </hbox>
 
