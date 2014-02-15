@@ -35,6 +35,49 @@ Components.utils.import("resource://requestpolicy/Policy.jsm",
 Components.utils.import("resource://requestpolicy/RequestUtil.jsm",
     requestpolicy.mod);
 
+
+// TODO: the function factory and _addMenuItem* functions below hopefully can be refactored.
+
+function _addMenuItemFunctionFactory(cssClass, fmtStrVerb, fmtStrAdverb,
+                                     action, subscriptionOverrideAction) {
+  if (!fmtStrAdverb) fmtStrAdverb = '';
+  if (!action) action = fmtStrVerb;
+
+  return function(list, ruleData, subscriptionOverride) {
+    var formatStringName, formatArgs;
+    var ruleAction = subscriptionOverride ? subscriptionOverrideAction : action;
+
+    if (ruleData["o"] && ruleData["d"]) {
+      formatStringName = fmtStrVerb + 'OriginToDestination' + fmtStrAdverb;
+      formatArgs = [ruleData["o"]["h"], ruleData["d"]["h"]];
+    } else if (ruleData["o"]) {
+      formatStringName = fmtStrVerb + 'Origin' + fmtStrAdverb;
+      formatArgs = [ruleData["o"]["h"]];
+    } else if (ruleData["d"]) {
+      formatStringName = fmtStrVerb + 'Destination' + fmtStrAdverb;
+      formatArgs = [ruleData["d"]["h"]];
+    } else {
+      throw "Invalid rule data: no origin or destination parts.";
+    }
+
+    // |this| is expected to be |requestpolicy.menu|
+
+    var label = this._strbundle.getFormattedString(formatStringName, formatArgs);
+    var item = this._addListItem(list, 'rp-od-item', label);
+    item.requestpolicyRuleData = ruleData;
+    item.requestpolicyRuleAction = ruleAction;
+    //var statustext = ''; // TODO
+    item.setAttribute('class', 'rp-od-item ' + cssClass);
+    var canonicalRule = requestpolicy.mod.Policy.rawRuleToCanonicalString(ruleData);
+    if (this._ruleChangeQueues[ruleAction]) {
+      if (this._ruleChangeQueues[ruleAction][canonicalRule]) {
+        item.setAttribute('selected-rule', 'true');
+      }
+    }
+    return item;
+  }
+}
+
 requestpolicy.menu = {
 
   _initialized : false,
@@ -306,10 +349,10 @@ requestpolicy.menu = {
         //var item = this._addMenuItemTempDenyOrigin(this._addRulesList, ruleData);
       } else {
         if (!this._privateBrowsingEnabled) {
-          var item = this._addMenuItemAllowOrigin(
+          var item = this._addMenuItemAllow(
             this._addRulesList, ruleData);
         }
-        var item = this._addMenuItemTempAllowOrigin(this._addRulesList, ruleData);
+        var item = this._addMenuItemTempAllow(this._addRulesList, ruleData);
       }
     }
 
@@ -327,20 +370,20 @@ requestpolicy.menu = {
         if (!policyMgr.ruleExists(RULE_TYPE_ALLOW, ruleData) &&
             !policyMgr.ruleExists(RULE_TYPE_DENY, ruleData)) {
           if (!this._privateBrowsingEnabled) {
-              var item = this._addMenuItemDenyOriginToDest(
+              var item = this._addMenuItemDeny(
                 this._addRulesList, ruleData);
           }
-          var item = this._addMenuItemTempDenyOriginToDest(
+          var item = this._addMenuItemTempDeny(
             this._addRulesList, ruleData);
         }
 
         if (!policyMgr.ruleExists(RULE_TYPE_ALLOW, destOnlyRuleData) &&
             !policyMgr.ruleExists(RULE_TYPE_DENY, destOnlyRuleData)) {
           if (!this._privateBrowsingEnabled) {
-            var item = this._addMenuItemDenyDest(
+            var item = this._addMenuItemDeny(
               this._addRulesList, destOnlyRuleData);
           }
-          var item = this._addMenuItemTempDenyDest(
+          var item = this._addMenuItemTempDeny(
             this._addRulesList, destOnlyRuleData);
         }
       }
@@ -348,20 +391,20 @@ requestpolicy.menu = {
         if (!policyMgr.ruleExists(RULE_TYPE_ALLOW, ruleData) &&
             !policyMgr.ruleExists(RULE_TYPE_DENY, ruleData)) {
           if (!this._privateBrowsingEnabled) {
-            var item = this._addMenuItemAllowOriginToDest(
+            var item = this._addMenuItemAllow(
               this._addRulesList, ruleData);
           }
-          var item = this._addMenuItemTempAllowOriginToDest(
+          var item = this._addMenuItemTempAllow(
             this._addRulesList, ruleData);
         }
 
         if (!policyMgr.ruleExists(RULE_TYPE_ALLOW, destOnlyRuleData) &&
             !policyMgr.ruleExists(RULE_TYPE_DENY, destOnlyRuleData)) {
           if (!this._privateBrowsingEnabled) {
-            var item = this._addMenuItemAllowDest(
+            var item = this._addMenuItemAllow(
               this._addRulesList, destOnlyRuleData);
           }
-          var item = this._addMenuItemTempAllowDest(
+          var item = this._addMenuItemTempAllow(
             this._addRulesList, destOnlyRuleData);
         }
       }
@@ -742,137 +785,61 @@ requestpolicy.menu = {
     }
   },
 
-  // TODO: the 12 _addMenuItem* functions below hopefully can be refactored.
-
-  // Stop allowing
-
-  _addMenuItemStopAllowingOrigin : function(list, ruleData, subscriptionOverride) {
-    var originHost = ruleData["o"]["h"];
-    var ruleAction = subscriptionOverride ? 'deny' : 'stop-allow';
-    return this._addMenuItemHelper(list, ruleData, 'stopAllowingOrigin', [originHost], ruleAction, 'rp-stop-rule rp-stop-allow');
-  },
-
-  _addMenuItemStopAllowingDest : function(list, ruleData, subscriptionOverride) {
-    var destHost = ruleData["d"]["h"];
-    var ruleAction = subscriptionOverride ? 'deny' : 'stop-allow';
-    return this._addMenuItemHelper(list, ruleData, 'stopAllowingDestination', [destHost], ruleAction, 'rp-stop-rule rp-stop-allow');
-  },
-
-  _addMenuItemStopAllowingOriginToDest : function(list, ruleData, subscriptionOverride) {
-    var originHost = ruleData["o"]["h"];
-    var destHost = ruleData["d"]["h"];
-    var ruleAction = subscriptionOverride ? 'deny' : 'stop-allow';
-    return this._addMenuItemHelper(list, ruleData, 'stopAllowingOriginToDestination', [originHost, destHost], ruleAction, 'rp-stop-rule rp-stop-allow');
-  },
-
   // Allow
 
-  _addMenuItemAllowOrigin : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'allowOrigin', [originHost], 'allow', 'rp-start-rule rp-allow');
-  },
-
-  _addMenuItemAllowDest : function(list, ruleData) {
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'allowDestination', [destHost], 'allow', 'rp-start-rule rp-allow');
-  },
-
-  _addMenuItemAllowOriginToDest : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'allowOriginToDestination', [originHost, destHost], 'allow', 'rp-start-rule rp-allow');
-  },
+  _addMenuItemAllow : _addMenuItemFunctionFactory(
+    'rp-start-rule rp-allow',
+    'allow'
+  ),
 
   // Allow temp
 
-  _addMenuItemTempAllowOrigin : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'allowOriginTemporarily', [originHost], 'allow-temp', 'rp-start-rule rp-allow rp-temporary');
-  },
+  _addMenuItemTempAllow : _addMenuItemFunctionFactory(
+    'rp-start-rule rp-allow rp-temporary',
+    'allow',
+    'Temporarily',
+    'allow-temp'
+  ),
 
-  _addMenuItemTempAllowDest : function(list, ruleData) {
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'allowDestinationTemporarily', [destHost], 'allow-temp', 'rp-start-rule rp-allow rp-temporary');
-  },
 
-  _addMenuItemTempAllowOriginToDest : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'allowOriginToDestinationTemporarily', [originHost, destHost], 'allow-temp', 'rp-start-rule rp-allow rp-temporary');
-  },
 
-  // Stop denying
+  // Stop allowing
 
-  _addMenuItemStopDenyingOrigin : function(list, ruleData, subscriptionOverride) {
-    var originHost = ruleData["o"]["h"];
-    var ruleAction = subscriptionOverride ? 'allow' : 'stop-deny';
-    return this._addMenuItemHelper(list, ruleData, 'stopDenyingOrigin', [originHost], ruleAction, 'rp-stop-rule rp-stop-deny');
-  },
-
-  _addMenuItemStopDenyingDest : function(list, ruleData, subscriptionOverride) {
-    var destHost = ruleData["d"]["h"];
-    var ruleAction = subscriptionOverride ? 'allow' : 'stop-deny';
-    return this._addMenuItemHelper(list, ruleData, 'stopDenyingDestination', [destHost], ruleAction, 'rp-stop-rule rp-stop-deny');
-  },
-
-  _addMenuItemStopDenyingOriginToDest : function(list, ruleData, subscriptionOverride) {
-    var originHost = ruleData["o"]["h"];
-    var destHost = ruleData["d"]["h"];
-    var ruleAction = subscriptionOverride ? 'allow' : 'stop-deny';
-    return this._addMenuItemHelper(list, ruleData, 'stopDenyingOriginToDestination', [originHost, destHost], ruleAction, 'rp-stop-rule rp-stop-deny');
-  },
+  _addMenuItemStopAllowing : _addMenuItemFunctionFactory(
+    'rp-start-rule rp-stop-allow',
+    'stopAllowing',
+    '',
+    'stop-allow',
+    'deny'
+  ),
 
   // Deny
 
-  _addMenuItemDenyOrigin : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'denyOrigin', [originHost], 'deny', 'rp-start-rule rp-deny');
-  },
-
-  _addMenuItemDenyDest : function(list, ruleData) {
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'denyDestination', [destHost], 'deny', 'rp-start-rule rp-deny');
-  },
-
-  _addMenuItemDenyOriginToDest : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'denyOriginToDestination', [originHost, destHost], 'deny', 'rp-start-rule rp-deny');
-  },
+  _addMenuItemDeny : _addMenuItemFunctionFactory(
+    'rp-start-rule rp-deny',
+    'deny'
+  ),
 
   // Deny temp
 
-  _addMenuItemTempDenyOrigin : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'denyOriginTemporarily', [originHost], 'deny-temp', 'rp-start-rule rp-deny rp-temporary');
-  },
+  _addMenuItemTempDeny : _addMenuItemFunctionFactory(
+    'rp-start-rule rp-deny rp-temporary',
+    'deny',
+    'Temporarily',
+    'deny-temp'
+  ),
 
-  _addMenuItemTempDenyDest : function(list, ruleData) {
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'denyDestinationTemporarily', [destHost], 'deny-temp', 'rp-start-rule rp-deny rp-temporary');
-  },
 
-  _addMenuItemTempDenyOriginToDest : function(list, ruleData) {
-    var originHost = ruleData["o"]["h"];
-    var destHost = ruleData["d"]["h"];
-    return this._addMenuItemHelper(list, ruleData, 'denyOriginToDestinationTemporarily', [originHost, destHost], 'deny-temp', 'rp-start-rule rp-deny rp-temporary');
-  },
 
-  _addMenuItemHelper : function(list, ruleData, fmtStrName, fmtStrArgs, ruleAction, cssClass) {
-    var label = this._strbundle.getFormattedString(fmtStrName, fmtStrArgs);
-    var item = this._addListItem(list, 'rp-od-item', label);
-    item.requestpolicyRuleData = ruleData;
-    item.requestpolicyRuleAction = ruleAction;
-    //var statustext = ''; // TODO
-    item.setAttribute('class', 'rp-od-item ' + cssClass);
-    var canonicalRule = requestpolicy.mod.Policy.rawRuleToCanonicalString(ruleData);
-    if (this._ruleChangeQueues[ruleAction]) {
-      if (this._ruleChangeQueues[ruleAction][canonicalRule]) {
-        item.setAttribute('selected-rule', 'true');
-      }
-    }
-    return item;
-  },
+  // Stop denying
+
+  _addMenuItemStopDenying : _addMenuItemFunctionFactory(
+    'rp-stop-rule rp-stop-deny',
+    'stopDenying',
+    '',
+    'stop-deny',
+    'allow'
+  ),
 
   _ruleDataPartToDisplayString : function(ruleDataPart) {
     var str = "";
@@ -885,45 +852,6 @@ requestpolicy.menu = {
     }
     // TODO: path
     return str;
-  },
-
-  _ruleDataToFormatVariables : function(rawRule) {
-    var fmtVars = [];
-    if (rawRule["o"]) {
-      fmtVars.push(this._ruleDataPartToDisplayString(rawRule["o"]));
-    }
-    if (rawRule["d"]) {
-      fmtVars.push(this._ruleDataPartToDisplayString(rawRule["d"]));
-    }
-    return fmtVars;
-  },
-
-  _addMenuItemRemoveAllowRule : function(list, rawRule, subscriptionOverride) {
-    var fmtVars = this._ruleDataToFormatVariables(rawRule);
-
-    if (rawRule["o"] && rawRule["d"]) {
-      return this._addMenuItemStopAllowingOriginToDest(list, rawRule, subscriptionOverride);
-    } else if (rawRule["o"]) {
-      return this._addMenuItemStopAllowingOrigin(list, rawRule, subscriptionOverride);
-    } else if (rawRule["d"]) {
-      return this._addMenuItemStopAllowingDest(list, rawRule, subscriptionOverride);
-    } else {
-      throw "Invalid rule data: no origin or destination parts.";
-    }
-  },
-
-  _addMenuItemRemoveDenyRule : function(list, rawRule, subscriptionOverride) {
-    var fmtVars = this._ruleDataToFormatVariables(rawRule);
-
-    if (rawRule["o"] && rawRule["d"]) {
-      return this._addMenuItemStopDenyingOriginToDest(list, rawRule, subscriptionOverride);
-    } else if (rawRule["o"]) {
-      return this._addMenuItemStopDenyingOrigin(list, rawRule, subscriptionOverride);
-    } else if (rawRule["d"]) {
-      return this._addMenuItemStopDenyingDest(list, rawRule, subscriptionOverride);
-    } else {
-      throw "Invalid rule data: no origin or destination parts.";
-    }
   },
 
   _populateDetailsRemoveAllowRules : function(list) {
@@ -1149,9 +1077,9 @@ requestpolicy.menu = {
       if (!policyMgr.ruleExists(RULE_TYPE_ALLOW, ruleData) &&
           !policyMgr.ruleExists(RULE_TYPE_DENY, ruleData)) {
         if (!this._privateBrowsingEnabled) {
-          var item = this._addMenuItemAllowOriginToDest(list, ruleData);
+          var item = this._addMenuItemAllow(list, ruleData);
         }
-        var item = this._addMenuItemTempAllowOriginToDest(list, ruleData);
+        var item = this._addMenuItemTempAllow(list, ruleData);
       }
 
       var destOnlyRuleData = {
@@ -1162,9 +1090,9 @@ requestpolicy.menu = {
       if (!policyMgr.ruleExists(RULE_TYPE_ALLOW, destOnlyRuleData) &&
           !policyMgr.ruleExists(RULE_TYPE_DENY, destOnlyRuleData)) {
         if (!this._privateBrowsingEnabled) {
-          var item = this._addMenuItemAllowDest(list, destOnlyRuleData);
+          var item = this._addMenuItemAllow(list, destOnlyRuleData);
         }
-        var item = this._addMenuItemTempAllowDest(list, destOnlyRuleData);
+        var item = this._addMenuItemTempAllow(list, destOnlyRuleData);
       }
     }
 
