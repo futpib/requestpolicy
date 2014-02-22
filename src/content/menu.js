@@ -423,8 +423,7 @@ requestpolicy.menu = {
 
     this._populateAffectedUrlsInfo();
 
-    this._populateDetailsRemoveAllowRules(this._removeRulesList);
-    this._populateDetailsRemoveDenyRules(this._removeRulesList);
+    this._populateDetailsForTempRules(this._removeRulesList);
   },
 
   _categorizeReqSetDestUrls : function(reqSet) {
@@ -858,7 +857,7 @@ requestpolicy.menu = {
     return str;
   },
 
-  _populateDetailsRemoveAllowRules : function(list) {
+  _populateDetailsForTempRules : function(list) {
     // TODO: can we avoid calling getAllowedRequests here and reuse a result
     // from calling it earlier?
 
@@ -876,8 +875,8 @@ requestpolicy.menu = {
 
     //var rules = {};
 
-    var userRules = {};
-    var subscriptionRules = {};
+    var userRules = {allow:{}, deny:{}};
+    var subscriptionRules = {allow:{}, deny:{}};
 
     //reqSet.print('allowedRequests');
 
@@ -907,128 +906,52 @@ requestpolicy.menu = {
           }
 
           var results = destinations[destUri];
-          for (var i in results.matchedAllowRules) {
 
-            var policy, match;
-            [policy, match] = results.matchedAllowRules[i];
-            var rawRule = requestpolicy.mod.Policy.matchToRawRule(match);
+          for (var allow in {true:null, false:null}) {
+            var matchedRules = results[allow ? 'matchedAllowRules' : 'matchedDenyRules'];
 
-            if (!this._currentlySelectedDest) {
-              if (rawRule['d'] && rawRule['d']['h']) {
-                continue;
+            for (var i in matchedRules) {
+
+              var policy, match;
+              [policy, match] = matchedRules[i];
+              var rawRule = requestpolicy.mod.Policy.matchToRawRule(match);
+
+              if (!this._currentlySelectedDest) {
+                if (rawRule['d'] && rawRule['d']['h']) {
+                  continue;
+                }
               }
-            }
 
-            var rawRuleStr = requestpolicy.mod.Policy.rawRuleToCanonicalString(rawRule);
-            //requestpolicy.mod.Logger.info(requestpolicy.mod.Logger.TYPE_POLICY,
-            //       "matched allow rule: " + rawRuleStr);
-            // This is how we remove duplicates: if two rules have the same
-            // canonical string, they'll have in the same key.
-            if (policy.userPolicy) {
-              userRules[rawRuleStr] = rawRule;
-            } else {
-              subscriptionRules[rawRuleStr] = rawRule;
+              var rawRuleStr = requestpolicy.mod.Policy.rawRuleToCanonicalString(rawRule);
+              //requestpolicy.mod.Logger.info(requestpolicy.mod.Logger.TYPE_POLICY,
+              //       "matched allow rule: " + rawRuleStr);
+              // This is how we remove duplicates: if two rules have the same
+              // canonical string, they'll have in the same key.
+              if (policy.userPolicy) {
+                userRules[allow ? 'allow' : 'deny'][rawRuleStr] = rawRule;
+              } else {
+                subscriptionRules[allow ? 'allow' : 'deny'][rawRuleStr] = rawRule;
+              }
             }
           }
         }
       }
     }
 
-    for (var i in userRules) {
-      this._addMenuItemRemoveAllowRule(list, userRules[i], false);
+    for (var i in userRules.allow) {
+      this._addMenuItemStopAllowing(list, userRules.allow[i], false);
+    }
+    for (var i in userRules.deny) {
+      this._addMenuItemStopDenying(list, userRules.deny[i], false);
     }
     // TODO: for subscription rules, we need the effect of the menu item to be
     // adding a deny rule instead of removing an allow rule. However, the text
     // used for the item needs to be the same as removing an allow rule.
-    for (var i in subscriptionRules) {
-      this._addMenuItemRemoveAllowRule(list, subscriptionRules[i], true);
+    for (var i in subscriptionRules.allow) {
+      this._addMenuItemStopAllowing(list, subscriptionRules[i], true);
     }
-  },
-
-  _populateDetailsRemoveDenyRules : function(list) {
-    // TODO: can we avoid calling getDeniedRequests here and reuse a result
-    // from calling it earlier?
-
-    // Only pass a uri to getDeniedRequests if this isn't for listing the
-    // blocked destinations of an other origin.
-    var uri = null;
-    if (this._currentBaseDomain == this._currentlySelectedOrigin) {
-      uri = this._currentUri;
-    }
-    var ident = 'http://' + this._currentlySelectedOrigin;
-
-    var reqSet = requestpolicy.mod.RequestUtil.getDeniedRequests(
-      uri, ident, this._otherOrigins);
-    var requests = reqSet.getAllMergedOrigins();
-
-    //var rules = {};
-
-    var userRules = {};
-    var subscriptionRules = {};
-
-    reqSet.print('deniedRequests');
-
-    // TODO: there is no dest if no dest is selected (origin only).
-    //var destBase = requestpolicy.mod.DomainUtil.getDomain(
-    //      this._currentlySelectedDest);
-
-    for (var destBase in requests) {
-
-      if (this._currentlySelectedDest &&
-        this._currentlySelectedDest != destBase) {
-        continue;
-      }
-
-      for (var destIdent in requests[destBase]) {
-
-        var destinations = requests[destBase][destIdent];
-        for (var destUri in destinations) {
-
-          // This will be null when the request was denied because of a default
-          // deny rule. However about any other time?
-          // TODO: we at least in default deny mode, we need to give an option
-          // to add a allow rule for these requests.
-          if (!destinations[destUri]) {
-            requestpolicy.mod.Logger.dump("destinations[destUri] is null or undefined for destUri: " + destUri);
-            continue;
-          }
-
-          var results = destinations[destUri];
-          for (var i in results.matchedDenyRules) {
-
-            var policy, match;
-            [policy, match] = results.matchedDenyRules[i];
-            var rawRule = requestpolicy.mod.Policy.matchToRawRule(match);
-
-            if (!this._currentlySelectedDest) {
-              if (rawRule['d'] && rawRule['d']['h']) {
-                continue;
-              }
-            }
-
-            var rawRuleStr = requestpolicy.mod.Policy.rawRuleToCanonicalString(rawRule);
-            //requestpolicy.mod.Logger.info(requestpolicy.mod.Logger.TYPE_POLICY,
-            //       "matched allow rule: " + rawRuleStr);
-            // This is how we remove duplicates: if two rules have the same
-            // canonical string, they'll have in the same key.
-            if (policy.userPolicy) {
-              userRules[rawRuleStr] = rawRule;
-            } else {
-              subscriptionRules[rawRuleStr] = rawRule;
-            }
-          }
-        }
-      }
-    }
-
-    for (var i in userRules) {
-      this._addMenuItemRemoveDenyRule(list, userRules[i], false);
-    }
-    // TODO: for subscription rules, we need the effect of the menu item to be
-    // adding an allow rule instead of removing a deny rule. However, the text
-    // used for the item needs to be the same as removing a deny rule.
-    for (var i in subscriptionRules) {
-      this._addMenuItemRemoveDenyRule(list, subscriptionRules[i], true);
+    for (var i in subscriptionRules.deny) {
+      this._addMenuItemStopDenying(list, subscriptionRules[i], true);
     }
   },
 
