@@ -338,7 +338,6 @@ toolbar[iconsize="small"][requestpolicyPermissive="true"] #requestpolicyToolbarB
 #rp-footer {
   border-top: 1px solid #ddd;
   padding: 0 5px 2px 5px;
-  -moz-box-pack: end;
 }
 #rp-footer-links {
   margin-top: 4px;
@@ -358,6 +357,9 @@ toolbar[iconsize="small"][requestpolicyPermissive="true"] #requestpolicyToolbarB
 }
 #rp-link-enable-blocking {
   color: #966803;
+}
+#rp-link-disable-auto-reload, #rp-link-enable-auto-reload {
+  color: #000;
 }
 
 /*********************************************

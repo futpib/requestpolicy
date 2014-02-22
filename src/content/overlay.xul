@@ -148,13 +148,20 @@
                onclick="requestpolicy.overlay.revokeTemporaryPermissions();"/>
         </hbox>
         <hbox id="rp-footer">
-          <hbox id="rp-footer-links">
+          <hbox id="rp-footer-links" flex="1" >
+            <label id="rp-link-disable-auto-reload" class="rp-footer-link"
+                   value="&rp.menu.disableAutoReload;"
+                   onclick="requestpolicy.overlay.toggleAutoReload();" />
+            <label id="rp-link-enable-auto-reload" class="rp-footer-link"
+                   value="&rp.menu.enableAutoReload;"
+                   onclick="requestpolicy.overlay.toggleAutoReload();" />
             <label id="rp-link-enable-blocking" class="rp-footer-link"
                    value="&rp.menu.enableBlocking;"
                    onclick="requestpolicy.overlay.toggleTemporarilyAllowAll();"/>
             <label id="rp-link-disable-blocking" class="rp-footer-link"
                    value="&rp.menu.disableBlocking;"
                    onclick="requestpolicy.overlay.toggleTemporarilyAllowAll();"/>
+            <spacer flex="1" />
             <label id="rp-link-help" class="rp-footer-link"
                    value="&rp.menu.help;"
                    onclick="requestpolicy.overlay.openHelp();"/>

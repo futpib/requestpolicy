@@ -174,6 +174,10 @@ requestpolicy.menu = {
       document.getElementById('rp-link-enable-blocking').hidden = !disabled;
       document.getElementById('rp-link-disable-blocking').hidden = disabled;
 
+      var reload = this._rpService.prefs.getBoolPref("autoReload");
+      document.getElementById('rp-link-enable-auto-reload').hidden = reload;
+      document.getElementById('rp-link-disable-auto-reload').hidden = !reload;
+
       document.getElementById('rp-revoke-temporary-permissions').hidden =
           !this._rpService.temporaryRulesExist();
 

@@ -5,6 +5,8 @@
 <!ENTITY rp.menu.allowedDestinations "Allowed destinations">
 <!ENTITY rp.menu.mixedDestinations "Mixed destinations">
 <!ENTITY rp.menu.otherOrigins "Other origins">
+<!ENTITY rp.menu.enableAutoReload "Reload page">
+<!ENTITY rp.menu.disableAutoReload "Do not reload page">
 <!ENTITY rp.menu.enableBlocking "Enable blocking">
 <!ENTITY rp.menu.disableBlocking "Disable blocking">
 <!ENTITY rp.menu.help "Help">

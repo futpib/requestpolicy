@@ -1229,12 +1229,12 @@ requestpolicy.overlay = {
    */
   onPopupHiding : function(event) {
     var rulesChanged = requestpolicy.menu.processQueuedRuleChanges();
-    if (rulesChanged || this._needsReloadOnMenuClose) {
-      //if (this._rpService.prefs.getBoolPref("autoReload")) {
-        content.document.location.reload(false);
-      //}
+    if (this._rpService.prefs.getBoolPref("autoReload")) {
+      if (rulesChanged || this._needsReloadOnMenuClose) {
+          content.document.location.reload(false);
+      }
+      this._needsReloadOnMenuClose = false;
     }
-    this._needsReloadOnMenuClose = false;
 //    if (event.currentTarget != event.originalTarget) {
 //      return;
 //    }
@@ -1272,6 +1272,21 @@ requestpolicy.overlay = {
     }
     return requestpolicy.mod.DomainUtil
         .stripFragment(content.document.documentURI);
+  },
+
+  /**
+   * Toggles automatic page reload preference.
+   *
+   * @param {Event}
+   *          event
+   */
+  toggleAutoReload : function(event) {
+    var reload = !this._rpService.prefs.getBoolPref("autoReload");
+    this._rpService.prefs.setBoolPref("autoReload", reload);
+
+    // Change the link displayed in the menu.
+    document.getElementById('rp-link-disable-auto-reload').hidden = !reload;
+    document.getElementById('rp-link-enable-auto-reload').hidden = reload;
   },
 
   /**
