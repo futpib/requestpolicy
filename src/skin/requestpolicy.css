@@ -130,6 +130,7 @@ toolbar[iconsize="small"][requestpolicyPermissive="true"] #requestpolicyToolbarB
 }
 #rp-contents {
   background-color: #ffffff;
+  color : #555;
 }
 #rp-main {
   padding: 10px 10px 10px 10px;
